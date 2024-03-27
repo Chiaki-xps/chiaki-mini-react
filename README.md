@@ -41,6 +41,8 @@ render(MiniReact.createElement(App, null), document.getElementById('root'));
 
 ## 2. 第一渲染过程
 
+![image-20240328031038650](README.assets/image-20240328031038650.png)
+
 1. 解析完成后，html引入文件后，会开始执行js代码，执行render函数。
    + render函数主要做了一些初始化的工作。设置wipRoot，并且设置下一个需要处理的fiber节点（nextUnitOfWork）。
 
@@ -121,5 +123,9 @@ function performUnitOfWork(fiber) {
 ```
 
 ## 2. 为什么最终会形成fiber链表
+
+![image-20240328025622400](README.assets/image-20240328025622400.png)
+
+通过这部份不断遍历节点的child，直到结束后，回到上一个fiber寻找兄弟节点，之后再遍历它的child，通过这样的规律，最终遍历完成整棵树，就形成了下面所展示的链表。循环结束的标志是回到了根节点。
 
 ![image-20240328024159497](README.assets/image-20240328024159497.png)

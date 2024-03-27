@@ -93,7 +93,7 @@
         }
         // 上面的方法处理完成我们当前Fiber之后，就会开始寻找下一个处理的Fiber，并返回出去
         // 会先从fiber.child一直找到尽头，之后回到上一个节点找他的相邻兄弟组件，然后继续child，依次循环最后回到div#root
-        // 按照上面遍历的顺序，最终fiber树就会变成一个fiber链表。
+        // 按照下面遍历的顺序，最终fiber树就会变成一个fiber链表。
         if (fiber.child) {
             return fiber.child;
         }
@@ -102,6 +102,7 @@
             if (nextFiber.sibling) {
                 return nextFiber.sibling;
             }
+            // 说明兄弟节点处理完成，回到上一个节点return。
             nextFiber = nextFiber.return;
         }
     }
