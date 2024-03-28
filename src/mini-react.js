@@ -56,7 +56,6 @@
   function render(element, container) {
     // Tip: 打印render会在workLoop。render会同步执行，而workLoop会在空闲执行。
     // console.log('render');
-    debugger;
 
     // 下面都在进行初始化操作。
     wipRoot = {
@@ -218,6 +217,7 @@
     let oldFiber = wipFiber.alternate?.child;
     let prevSibling = null;
 
+    // 将当前fiber下子元素child都处理成fiber节点
     while (index < elements.length || oldFiber != null) {
       const element = elements[index];
       let newFiber = null;
@@ -256,18 +256,19 @@
         deletions.push(oldFiber);
       }
 
-      // 这里的设置，是为了下一个while循环时候使用
+      // oldFiber设置成下一个兄弟节点，进行下一次同节点的比较
       if (oldFiber) {
         oldFiber = oldFiber.sibling;
       }
 
       if (index === 0) {
-        // 第一次渲染的时候，child数组里保存的是App的React Element，并且该组件还未执行。值为{type：App, props: children: []}
+        // index为0作为当前处理节点的child，后续的index>0,则是child的兄弟节点sibling。
         wipFiber.child = newFiber;
       } else if (element) {
+        // 此时的prevSibling表示的index-1的节点。即当前newFiber作为上一个fiber的兄弟节点。
         prevSibling.sibling = newFiber;
       }
-
+      // 设置为当前节点，作为下次循环，给该节点设置兄弟节点
       prevSibling = newFiber;
       index++;
     }
@@ -316,8 +317,11 @@
     wipFiber.effectHooks.push(effectHook);
   }
 
+  // 当我们将整棵树遍历成Fiber后，就可以进入commit阶段
   function commitRoot() {
+    debugger;
     deletions.forEach(commitWork);
+    // div#root本事已经存在，所以从child开始
     commitWork(wipRoot.child);
     commitEffectHooks();
     currentRoot = wipRoot;
@@ -329,15 +333,21 @@
       return;
     }
 
+    // 拿到当前处理Fiber的父标签
     let domParentFiber = fiber.return;
+    // 假如当前的fiber的父级是App组件，App Fiber并不代表真实的DOM。而应该是上一级的div#root，通过一个循环找到最近的父级
     while (!domParentFiber.dom) {
       domParentFiber = domParentFiber.return;
     }
+    // 拿到父级DOM
     const domParent = domParentFiber.dom;
 
+    // 如果当前Fiber是替换，则加入作为父级的子元素，利用appendChild方法
     if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
       domParent.appendChild(fiber.dom);
-    } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
+    }
+    //
+    else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
       updateDom(fiber.dom, fiber.alternate.props, fiber.props);
     } else if (fiber.effectTag === 'DELETION') {
       commitDeletion(fiber, domParent);

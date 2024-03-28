@@ -122,10 +122,12 @@ function performUnitOfWork(fiber) {
  }
 ```
 
+4. `reconcileChildren`的作用就是对当前节点的React Element转变成Fiber。
+
 ## 2. 为什么最终会形成fiber链表
 
 ![image-20240328025622400](README.assets/image-20240328025622400.png)
 
-通过这部份不断遍历节点的child，直到结束后，回到上一个fiber寻找兄弟节点，之后再遍历它的child，通过这样的规律，最终遍历完成整棵树，就形成了下面所展示的链表。循环结束的标志是回到了根节点。
+通过这部份不断遍历节点的child，直到结束后，回到上一个fiber寻找兄弟节点，之后再遍历它的child，通过这样的规律，最终遍历完成整棵树，而我们遍历整个Fiber树的过程，更像一个链表。循环结束的标志是回到了根节点。
 
 ![image-20240328024159497](README.assets/image-20240328024159497.png)
