@@ -123,6 +123,7 @@ function performUnitOfWork(fiber) {
 ```
 
 4. `reconcileChildren`的作用就是对当前节点的React Element转变成Fiber。
+5. 完成整个虚拟DOM变成Fiber链表后，进入`commitRoot`，继而进入`commitWork`，`commitWork`所做的就是将一个个Fiber会转成真实DOM，一步步将子元素`appendChild`插入父元素，界面一点点渲染出来。
 
 ## 2. 为什么最终会形成fiber链表
 

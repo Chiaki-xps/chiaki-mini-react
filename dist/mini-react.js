@@ -272,9 +272,11 @@
         // div#root本事已经存在，所以从child开始
         commitWork(wipRoot.child);
         commitEffectHooks();
+        // 前面的操作已经完成基本渲染，此时的wipRoot成为了就的fiber链表，保存到currentRoot，重制wipRoot
         currentRoot = wipRoot;
         wipRoot = null;
     }
+    // 通过递归的方式，一步步将子元素appendChild插入父元素，界面一点点渲染出来。最终Fiber链表变成了真实DOM树
     function commitWork(fiber) {
         if (!fiber) {
             return;
