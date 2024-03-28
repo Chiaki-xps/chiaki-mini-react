@@ -286,16 +286,22 @@
     }
   }
 
+  // 当我们执行函数组件的时候，就会执行hook，进入到hook源码中来
+  // 正常情况下，能保存hook信息的fiber，该fiber表示的是函数组件，例如App
   function useState(initialState) {
     const currentFiber = wipFiber;
 
+    // 从节点，拿到旧的hook信息，里面保存了当前的state、stateHookIndex标志多少个useState被调用
     const oldHook = wipFiber.alternate?.stateHooks[stateHookIndex];
 
     const stateHook = {
+      // 当前state的值
       state: oldHook ? oldHook.state : initialState,
+      // 调用setState的时候，会将所有传入的函数，放入到queue数组中。
       queue: oldHook ? oldHook.queue : [],
     };
 
+    // 执行setState，得到最新的sate结果
     stateHook.queue.forEach((action) => {
       stateHook.state = action(stateHook.state);
     });
@@ -306,14 +312,17 @@
     wipFiber.stateHooks.push(stateHook);
 
     function setState(action) {
+      // 当我们调用setState的时候，多个setState的调用传入的值，或者函数，都会暂时放入到queue中
+      // 下面两行，保证存入的时候函数
       const isFunction = typeof action === 'function';
-
       stateHook.queue.push(isFunction ? action : () => action);
 
+      // 对当前节点更新，加入stateHook的信息。
       wipRoot = {
         ...currentFiber,
         alternate: currentFiber,
       };
+      // wipRoot表示当前节点，nextUnitOfWork表示等会要被处理的节点。集中加入stateHook信息之后，到下一次workLoop里再去处理。
       nextUnitOfWork = wipRoot;
     }
 
