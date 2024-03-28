@@ -139,7 +139,7 @@
     wipFiber.effectHooks = [];
 
     // 此时的fiber.type表示的是函数名。执行函数组件。函数组件的返回值React Element
-    console.log('返回结果', fiber.type(fiber.props));
+    // console.log('返回结果', fiber.type(fiber.props));
     const children = [fiber.type(fiber.props)];
     reconcileChildren(fiber, children);
   }
@@ -151,24 +151,35 @@
     reconcileChildren(fiber, fiber.props.children);
   }
 
-  // 创建真实DOM
+  // 创建真实DOM。
   function createDom(fiber) {
     const dom =
       fiber.type == 'TEXT_ELEMENT'
         ? document.createTextNode('')
         : document.createElement(fiber.type);
 
+    // 创建新DOM，意味着旧参数为空
     updateDom(dom, {}, fiber.props);
 
     return dom;
   }
 
+  // 判断属性是不是事件，特征是前缀带on
   const isEvent = (key) => key.startsWith('on');
+  // 属性
   const isProperty = (key) => key !== 'children' && !isEvent(key);
+  // 属性值是否改变
   const isNew = (prev, next) => (key) => prev[key] !== next[key];
+  // 属性是否已经不在新参数里
   const isGone = (prev, next) => (key) => !(key in next);
 
-  // 更新DOM，首先删除旧的事件监听器，旧的属性，然后添加新的属性、新的事件监听器。
+  // createDom已经创建好DOM，updateDom的工作是对当前的真实Dom的props进行更新，删除。首先删除旧的事件监听器，旧的属性，然后添加新的属性、新的事件监听器。
+  /**
+   *
+   * @param {*} dom 已经创建好的真实DOM
+   * @param {*} prevProps 旧的props参数
+   * @param {*} nextProps 新的参数
+   */
   function updateDom(dom, prevProps, nextProps) {
     //Remove old or changed event listeners
     Object.keys(prevProps)
@@ -179,7 +190,7 @@
         dom.removeEventListener(eventType, prevProps[name]);
       });
 
-    // Remove old properties
+    // Remove old properties。对于不在新参数里的属性，设置为空字符串。
     Object.keys(prevProps)
       .filter(isProperty)
       .filter(isGone(prevProps, nextProps))
@@ -187,7 +198,7 @@
         dom[name] = '';
       });
 
-    // Set new or changed properties
+    // Set new or changed properties。加入新属性。
     Object.keys(nextProps)
       .filter(isProperty)
       .filter(isNew(prevProps, nextProps))
@@ -195,7 +206,7 @@
         dom[name] = nextProps[name];
       });
 
-    // Add event listeners
+    // Add event listeners。增加事件
     Object.keys(nextProps)
       .filter(isEvent)
       .filter(isNew(prevProps, nextProps))
@@ -218,14 +229,15 @@
     let prevSibling = null;
 
     // 将当前fiber下子元素child都处理成fiber节点
+    // oldFiber != null 注意这里：undefined != null 结果 false，undefined !== null 结果true
     while (index < elements.length || oldFiber != null) {
       const element = elements[index];
       let newFiber = null;
 
-      // diff算法
+      // 如果值undefined、null认为是相同节点。
       const sameType = element?.type == oldFiber?.type;
 
-      // 节点类型相同
+      // 节点类型相同 -> 那么只需要在原来的DOM上更新属性就行
       if (sameType) {
         // 定义fiber对象
         newFiber = {
@@ -238,7 +250,7 @@
         };
       }
 
-      // 新Fiber元素存在 && 节点类型不同 -> 直接将新fiber替换旧fiber
+      // 新Fiber元素 -> 进入createDom
       if (element && !sameType) {
         newFiber = {
           type: element.type,
@@ -250,7 +262,7 @@
         };
       }
 
-      // 旧fiber存在 && 类型不同 -> 说明是新的DOM不存在这部份，直接删除
+      // 旧fiber存在 && 类型不同 -> 说明是新的DOM不存在这部份，标记删除
       if (oldFiber && !sameType) {
         oldFiber.effectTag = 'DELETION';
         deletions.push(oldFiber);
@@ -319,9 +331,9 @@
 
   // 当我们将整棵树遍历成Fiber后，就可以进入commit阶段
   function commitRoot() {
-    debugger;
+    // 集中把标记删除的节点处理了。
     deletions.forEach(commitWork);
-    // div#root本事已经存在，所以从child开始
+    // div#root本事已经存在，所以从child开始。
     commitWork(wipRoot.child);
     commitEffectHooks();
 
@@ -331,6 +343,10 @@
   }
 
   // 通过递归的方式，一步步将子元素appendChild插入父元素，界面一点点渲染出来。最终Fiber链表变成了真实DOM树
+  // 对于不同标记的fiber，会进行不同的处理：
+  //  标志update的会在原来的真实DOM上更新属性，卸载旧属性。
+  //  标志删除的，会根据return，拿到父节点，对该节点，removeChild
+  //  PLACEMENT表示要创建
   function commitWork(fiber) {
     if (!fiber) {
       return;
@@ -356,10 +372,12 @@
       commitDeletion(fiber, domParent);
     }
 
+    // 这里可以进行优化，更新阶段，当fiber节点标志移除，意味着整棵子树都被移除了，那么整棵树都不需要再遍历，增了多余appendChild操作。
     commitWork(fiber.child);
     commitWork(fiber.sibling);
   }
 
+  // 对真实DOM，删除节点
   function commitDeletion(fiber, domParent) {
     if (fiber.dom) {
       domParent.removeChild(fiber.dom);
