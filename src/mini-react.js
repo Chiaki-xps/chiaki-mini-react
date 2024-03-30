@@ -329,11 +329,12 @@
     return [stateHook.state, setState];
   }
 
+  // 每个函数组件都会有需要执行的useEffect，当执行函数组件的时候，会开始调用useEffect，将回调函数先保存起来
   function useEffect(callback, deps) {
     const effectHook = {
-      callback,
-      deps,
-      cleanup: undefined,
+      callback, // 回调函数
+      deps, // 依赖数组
+      cleanup: undefined, // 清理副作用
     };
     wipFiber.effectHooks.push(effectHook);
   }
@@ -344,6 +345,7 @@
     deletions.forEach(commitWork);
     // div#root本事已经存在，所以从child开始。
     commitWork(wipRoot.child);
+    // commitWork完成真实DOM之后，就开始执行effectHook
     commitEffectHooks();
 
     // 前面的操作已经完成基本渲染，此时的wipRoot成为了就的fiber链表，保存到currentRoot，重制wipRoot
@@ -408,13 +410,14 @@
     return true;
   }
 
+  // 内部的方法，通过递归，对真个链表的存在的effectHook进行处理
   function commitEffectHooks() {
+    // 在我们执行新的useEffect之前，需要对之前的useEffect清理副作用的方法，进行执行。
     function runCleanup(fiber) {
       if (!fiber) return;
-
       fiber.alternate?.effectHooks?.forEach((hook, index) => {
         const deps = fiber.effectHooks[index].deps;
-
+        // 比较依赖是否变化，决定是否执行清理副作用
         if (!hook.deps || !isDepsEqual(hook.deps, deps)) {
           hook.cleanup?.();
         }
@@ -424,6 +427,7 @@
       runCleanup(fiber.sibling);
     }
 
+    // 清理完副作用后，执行方法
     function run(fiber) {
       if (!fiber) return;
 
